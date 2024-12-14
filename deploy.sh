@@ -3,36 +3,17 @@
 # Exit on error
 set -e
 
-# Check if domain argument is provided
-if [ -z "$1" ]; then
-    echo "Please provide your domain name as an argument"
-    echo "Usage: ./deploy.sh yourdomain.com"
-    exit 1
-fi
+echo "Deploying FastAPI Google Maps Scraper..."
 
-DOMAIN=$1
-
-# Create required directories
-mkdir -p certbot/conf
-mkdir -p certbot/www
+# Pull latest changes
+git pull
 
 # Stop any running containers
 docker-compose down
 
-# Start nginx container
-docker-compose up --force-recreate -d nginx
+# Build and start the new container
+docker-compose up --build -d
 
-# Wait for nginx to start
-sleep 5
-
-# Get SSL certificate
-docker-compose run --rm certbot certonly --webroot --webroot-path=/var/www/certbot \
-    --email admin@${DOMAIN} --agree-tos --no-eff-email \
-    -d ${DOMAIN}
-
-# Restart containers
-docker-compose down
-docker-compose up -d
-
-echo "Deployment completed! Your application should be running at https://${DOMAIN}"
+echo "Deployment completed! Your application should be running on port 8080"
 echo "Check the logs with: docker-compose logs -f"
+echo "Test the API with: curl -X POST http://localhost:8080/scrape -H 'Content-Type: application/json' -d '{\"search_query\": \"restaurants in new york\", \"limit\": 5}'"
