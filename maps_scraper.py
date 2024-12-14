@@ -1,13 +1,22 @@
 from fastapi import FastAPI, HTTPException
-from playwright.async_api import async_playwright
-import asyncio
-from typing import List, Optional, Dict
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 from pydantic import BaseModel
 import logging
-import json
+from typing import List, Dict
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('scraper.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -16,98 +25,91 @@ class SearchRequest(BaseModel):
     search_query: str
     limit: int = 5
 
-class Business(BaseModel):
-    name: str
-    rating: Optional[str]
-    reviews: Optional[str]
-    category: Optional[str]
-    address: Optional[str]
-    phone: Optional[str]
-    website: Optional[str]
+def setup_driver():
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_argument('--disable-extensions')
+    chrome_options.add_argument('--disable-infobars')
+    return webdriver.Chrome(options=chrome_options)
 
-async def scrape_maps(query: str, limit: int) -> List[Dict]:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+def scrape_maps(query: str, limit: int) -> List[Dict]:
+    driver = setup_driver()
+    wait = WebDriverWait(driver, 20)
+    results = []
+    
+    try:
+        logger.info(f"Starting scrape for query: {query}")
+        # Navigate to Google Maps
+        driver.get(f"https://www.google.com/maps/search/{query}")
+        logger.info("Navigated to Google Maps")
         
-        try:
-            # Navigate to Google Maps
-            await page.goto('https://www.google.com/maps')
-            await page.wait_for_load_state('networkidle')
+        # Wait for results to load
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "[role='article']")))
+        logger.info("Initial results loaded")
+        
+        while len(results) < limit:
+            # Get all business cards
+            cards = driver.find_elements(By.CSS_SELECTOR, "[role='article']")
+            logger.info(f"Found {len(cards)} cards")
             
-            # Accept cookies if present
-            try:
-                await page.click('button:has-text("Accept all")', timeout=5000)
-            except:
-                pass
-            
-            # Search for the query
-            await page.fill('input[name="q"]', query)
-            await page.press('input[name="q"]', 'Enter')
-            await page.wait_for_load_state('networkidle')
-            
-            results = []
-            seen_names = set()
-            
-            while len(results) < limit:
-                # Extract business info
-                cards = await page.query_selector_all('[role="article"]')
+            for card in cards[len(results):]:
+                if len(results) >= limit:
+                    break
                 
-                for card in cards:
-                    if len(results) >= limit:
-                        break
-                        
-                    try:
-                        # Click the card to load details
-                        await card.click()
-                        await page.wait_for_load_state('networkidle')
-                        
-                        # Extract business details
-                        name = await card.evaluate('el => el.querySelector("h3")?.textContent || ""')
-                        
-                        if not name or name in seen_names:
-                            continue
-                            
-                        seen_names.add(name)
-                        
-                        info = {
-                            'name': name,
-                            'rating': await page.evaluate('() => document.querySelector("[role=img]")?.ariaLabel?.match(/([0-9.]+)/)?.[0] || ""'),
-                            'reviews': await page.evaluate('() => document.querySelector("[role=img]")?.ariaLabel?.match(/([0-9,]+) reviews/)?.[1] || ""'),
-                            'category': await page.evaluate('() => Array.from(document.querySelectorAll("button")).find(el => el.textContent?.includes("·"))?.textContent?.split("·")?.[1]?.trim() || ""'),
-                            'address': await page.evaluate('() => document.querySelector("button[data-item-id*=address]")?.textContent || ""'),
-                            'phone': await page.evaluate('() => document.querySelector("button[data-item-id*=phone]")?.textContent || ""'),
-                            'website': await page.evaluate('() => document.querySelector("a[data-item-id*=website]")?.href || ""')
-                        }
-                        
-                        results.append(info)
-                        
-                    except Exception as e:
-                        logger.warning(f"Error extracting business details: {e}")
-                        continue
-                
-                if len(results) < limit:
-                    try:
-                        # Scroll to load more
-                        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-                        await page.wait_for_timeout(1000)
-                    except:
-                        break
+                try:
+                    # Click the card to load details
+                    driver.execute_script("arguments[0].scrollIntoView(true);", card)
+                    driver.execute_script("arguments[0].click();", card)
+                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1")))
+                    
+                    # Extract business details
+                    info = {
+                        'name': driver.find_element(By.CSS_SELECTOR, "h1").text,
+                        'rating': driver.find_element(By.CSS_SELECTOR, "span.fontDisplayLarge").text if len(driver.find_elements(By.CSS_SELECTOR, "span.fontDisplayLarge")) > 0 else None,
+                        'reviews': driver.find_element(By.CSS_SELECTOR, "button[jsaction*='pane.rating.moreReviews']").text if len(driver.find_elements(By.CSS_SELECTOR, "button[jsaction*='pane.rating.moreReviews']")) > 0 else None,
+                        'category': driver.find_element(By.CSS_SELECTOR, "button[jsaction*='pane.rating.category']").text if len(driver.find_elements(By.CSS_SELECTOR, "button[jsaction*='pane.rating.category']")) > 0 else None,
+                        'address': driver.find_element(By.CSS_SELECTOR, "button[data-item-id*='address']").text if len(driver.find_elements(By.CSS_SELECTOR, "button[data-item-id*='address']")) > 0 else None,
+                        'phone': driver.find_element(By.CSS_SELECTOR, "button[data-item-id*='phone']").text if len(driver.find_elements(By.CSS_SELECTOR, "button[data-item-id*='phone']")) > 0 else None,
+                        'website': driver.find_element(By.CSS_SELECTOR, "a[data-item-id*='authority']").get_attribute('href') if len(driver.find_elements(By.CSS_SELECTOR, "a[data-item-id*='authority']")) > 0 else None
+                    }
+                    
+                    results.append(info)
+                    logger.info(f"Successfully scraped: {info['name']}")
+                    
+                except Exception as e:
+                    logger.error(f"Error extracting business details: {str(e)}")
+                    continue
             
-            return results
-            
-        finally:
-            await browser.close()
+            if len(results) < limit:
+                # Scroll to load more
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                driver.implicitly_wait(2)
+        
+        logger.info(f"Scraping completed. Found {len(results)} results")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Scraping error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+        
+    finally:
+        driver.quit()
 
 @app.post("/scrape")
-async def scrape(request: SearchRequest):
+def scrape(request: SearchRequest):
     try:
-        results = await scrape_maps(request.search_query, request.limit)
+        logger.info(f"Received scrape request for: {request.search_query}")
+        results = scrape_maps(request.search_query, request.limit)
         return {"status": "success", "results": results}
     except Exception as e:
-        logger.error(f"Scraping error: {e}")
+        logger.error(f"API error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
-async def health_check():
+def health_check():
     return {"status": "healthy"}
