@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import *
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import time
 import logging
 import random
@@ -24,10 +24,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 class RetryableError(Exception):
     """Error that can be retried"""

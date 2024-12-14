@@ -1,134 +1,60 @@
 # Google Maps Scraper API
 
-A production-ready Flask API for scraping Google Maps search results. Built with Selenium and designed for scalability and reliability.
+A production-ready API service for scraping business information from Google Maps.
 
-## Features
+## API Endpoints
 
-- Scrapes comprehensive business information from Google Maps
-- Production-ready with Docker containerization
-- Configurable rate limiting and timeouts
-- SSL/TLS support with automatic certificate renewal
-- Proper error handling and logging
-- Anti-detection measures
+### POST /scrape
+Scrapes business information from Google Maps based on a search query.
 
-## Prerequisites
-
-- Docker and Docker Compose
-- Domain name pointed to your server
-- (Optional) Caddy server for reverse proxy
-
-## Deployment
-
-### Standard Deployment
-
-1. Clone the repository:
-```bash
-git clone <your-repo-url>
-cd <repo-directory>
-```
-
-2. Deploy with SSL:
-```bash
-chmod +x deploy.sh
-./deploy.sh your-domain.com
-```
-
-### Deployment with Existing Caddy Server
-
-1. Add the Caddy configuration snippet to your Caddyfile:
-```bash
-cat Caddyfile.snippet >> /etc/caddy/Caddyfile
-systemctl reload caddy
-```
-
-2. Deploy the application:
-```bash
-chmod +x deploy.sh
-./deploy.sh your-domain.com
-```
-
-## API Usage
-
-### Scrape Google Maps Results
-
-```bash
-curl -X POST https://your-domain.com/scrape \
-  -H "Content-Type: application/json" \
-  -d '{
-    "search_query": "restaurants in new york",
-    "limit": 30
-  }'
-```
-
-Response format:
+**Request Body:**
 ```json
 {
-  "status": "success",
-  "search_query": "restaurants in new york",
-  "results_count": 30,
-  "results": [
-    {
-      "name": "Restaurant Name",
-      "rating": "4.5",
-      "reviews": "1,234 reviews",
-      "address": "123 Main St, New York, NY",
-      "phone": "+1 234-567-8900",
-      "website": "https://example.com",
-      "category": "Restaurant"
-    }
-  ],
-  "message": "Scraping completed successfully"
+    "search_query": "restaurants in new york",
+    "limit": 5
 }
 ```
 
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file with the following variables:
-```env
-FLASK_ENV=production
-FLASK_APP=maps_scraper.py
+**Response:**
+```json
+{
+    "status": "success",
+    "results": [
+        {
+            "name": "Business Name",
+            "rating": "4.5",
+            "reviews": "123",
+            "category": "Restaurant",
+            "address": "123 Main St, New York, NY",
+            "phone": "+1 234-567-8900",
+            "website": "https://example.com"
+        }
+    ]
+}
 ```
 
-### Timeouts
-
-- API timeout: 180 seconds
-- Scraping timeout: 180 seconds
-- Individual request timeout: 30 seconds
-
-## Maintenance
-
-### Viewing Logs
+## Usage Example
 
 ```bash
-# View all logs
-docker-compose logs -f
-
-# View specific service logs
-docker-compose logs -f web
-docker-compose logs -f nginx
+curl -X POST https://gmb-scraper.funautomations.io/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"search_query": "restaurants in new york", "limit": 5}'
 ```
 
-### Updating the Application
+## Deployment
 
+1. Clone the repository
+2. Update environment variables if needed
+3. Run with Docker Compose:
 ```bash
-# Pull latest changes
-git pull
-
-# Rebuild and restart containers
-docker-compose down
-docker-compose up -d --build
+docker-compose up -d
 ```
 
-## Security
+## Environment Variables
+- `FLASK_ENV`: Set to 'production' for production mode
+- `FLASK_APP`: Set to 'maps_scraper.py'
 
-- Runs as non-root user
-- SSL/TLS encryption
-- Rate limiting
-- Input validation
-- Anti-bot detection measures
-
-## License
-
-[Your License]
+## Notes
+- This is an API-only service designed for production use
+- Implements rate limiting and error handling
+- Uses Chrome in headless mode for scraping

@@ -48,7 +48,6 @@ WORKDIR /app
 # Copy application files
 COPY requirements.txt .
 COPY maps_scraper.py .
-COPY templates/ templates/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
