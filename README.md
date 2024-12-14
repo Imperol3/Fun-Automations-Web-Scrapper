@@ -1,80 +1,128 @@
-# Comprehensive SEO Analysis Tool
+# Google Maps Business Scraper API
 
-This tool provides in-depth SEO analysis for websites, including competitor analysis and keyword research.
+A powerful Flask-based API that scrapes business information from Google Maps using Selenium. This tool provides comprehensive data extraction with real-time logging capabilities.
 
 ## Features
 
-- Complete on-page SEO analysis
-- Technical SEO audit
-- Competitor analysis
-- Keyword density analysis
-- Content quality assessment
-- Mobile-friendliness check
-- Image optimization check
-- Meta tags analysis
-- Domain information
-- Internal and external link analysis
+- 🔍 Search businesses by query and location
+- 📊 Extract detailed business information:
+  - Business name
+  - Address
+  - Phone number
+  - Website
+  - Rating
+  - Number of reviews
+  - Business hours
+  - Additional details
+- 📝 Real-time logging with rotating file system
+- 🔒 Production-ready with Docker deployment
+- 🔐 SSL/TLS support with automatic certificate renewal
+- 🚀 Scalable architecture with Nginx reverse proxy
 
-## Installation
+## Quick Start
 
-1. Clone this repository
-2. Install the required packages:
+### Local Development
+
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
-
-Run the analysis using:
+2. Run the Flask application:
 ```bash
-python main.py [URL] [KEYWORD]
+python maps_scraper.py
 ```
 
-Example:
+### Docker Deployment
+
+1. Update your domain in `nginx.conf`:
 ```bash
-python main.py https://n8n.io "n8n"
+sed -i "s/YOUR_DOMAIN_NAME/yourdomain.com/g" nginx.conf
 ```
 
-The tool will:
-1. Analyze the provided URL
-2. Search for top competitors
-3. Perform comprehensive SEO analysis
-4. Generate a detailed report in JSON format
+2. Run the deployment script:
+```bash
+chmod +x deploy.sh
+./deploy.sh yourdomain.com
+```
 
-## Analysis Components
+## API Endpoints
 
-### On-Page Analysis
-- Title tag optimization
-- Meta description analysis
-- Heading structure
-- Content quality and length
-- Keyword density
-- Image optimization
+### Search Businesses
+```http
+POST /search
+Content-Type: application/json
 
-### Technical Analysis
-- URL structure
-- Mobile responsiveness
-- Domain information
-- Internal/external links
-- Page load speed indicators
+{
+    "query": "restaurants",
+    "location": "New York"
+}
+```
 
-### Competitor Analysis
-- Top 5 competing pages for the keyword
-- Comparison of key metrics
-- Content length analysis
-- Meta tag comparison
+Response:
+```json
+{
+    "results": [
+        {
+            "name": "Business Name",
+            "address": "Business Address",
+            "phone": "Phone Number",
+            "website": "Website URL",
+            "rating": "4.5",
+            "reviews": "100",
+            "hours": {...}
+        }
+    ]
+}
+```
 
-## Output
+## Deployment
 
-The tool generates a JSON file containing:
-- Overall SEO score
-- Key findings and recommendations
-- Detailed analysis results
-- Competitor comparison
-- Technical metrics
+This project includes a complete Docker setup for production deployment:
 
-## Requirements
+- Nginx reverse proxy with SSL/TLS
+- Automatic SSL certificate renewal with Certbot
+- Docker Compose for easy orchestration
+- Secure configuration with non-root users
+- Rotating log files
 
-- Python 3.7+
-- Internet connection
-- Required packages listed in requirements.txt
+### Requirements
+
+- Docker and Docker Compose
+- Domain name pointed to your server
+- Server with at least 2GB RAM
+
+### Production Setup
+
+1. Point your domain's A record to your server's IP
+2. Clone this repository
+3. Run the deployment script:
+```bash
+./deploy.sh yourdomain.com
+```
+
+## Logging
+
+The scraper includes comprehensive logging:
+- Real-time progress updates
+- Rotating file handler to manage log sizes
+- Detailed extraction information
+- Error tracking and debugging info
+
+Logs are stored in the `logs` directory with automatic rotation.
+
+## Security
+
+- SSL/TLS encryption
+- Non-root Docker containers
+- Regular security updates
+- Protected API endpoints
+- Secure configuration defaults
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
