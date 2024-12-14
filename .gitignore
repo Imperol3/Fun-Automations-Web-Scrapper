@@ -16,17 +16,12 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
-# Logs
-logs/
-*.log
-
-# Environment variables
-.env
-.venv
+# Virtual Environment
 venv/
 ENV/
 
@@ -36,10 +31,19 @@ ENV/
 *.swp
 *.swo
 
-# Docker
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# SSL certificates
 certbot/
+
+# Docker
 .docker/
 
-# OS
+# System Files
 .DS_Store
 Thumbs.db

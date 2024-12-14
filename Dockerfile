@@ -38,6 +38,9 @@ RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | awk -F'.' '{pr
     && rm chromedriver_linux64.zip \
     && chmod +x /usr/local/bin/chromedriver
 
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
 # Set working directory
 WORKDIR /app
 
@@ -49,20 +52,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create logs directory with proper permissions
-RUN mkdir -p /app/logs && chmod 777 /app/logs
+RUN mkdir -p /app/logs && \
+    chown -R appuser:appuser /app
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV DISPLAY=:99
-ENV FLASK_ENV=production
-ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --timeout=300 --bind=0.0.0.0:5000"
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 5000
 
-# Create a non-root user
-RUN useradd -m appuser && chown -R appuser:appuser /app
-USER appuser
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=maps_scraper.py
+ENV FLASK_ENV=production
 
-# Start Xvfb and run the application with proper error handling
-CMD sh -c "Xvfb :99 -screen 0 1920x1080x16 & gunicorn maps_scraper:app"
+# Run the application
+CMD ["python", "maps_scraper.py"]

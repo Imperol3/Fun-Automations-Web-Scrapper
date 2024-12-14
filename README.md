@@ -1,128 +1,134 @@
-# Google Maps Business Scraper API
+# Google Maps Scraper API
 
-A powerful Flask-based API that scrapes business information from Google Maps using Selenium. This tool provides comprehensive data extraction with real-time logging capabilities.
+A production-ready Flask API for scraping Google Maps search results. Built with Selenium and designed for scalability and reliability.
 
 ## Features
 
-- 🔍 Search businesses by query and location
-- 📊 Extract detailed business information:
-  - Business name
-  - Address
-  - Phone number
-  - Website
-  - Rating
-  - Number of reviews
-  - Business hours
-  - Additional details
-- 📝 Real-time logging with rotating file system
-- 🔒 Production-ready with Docker deployment
-- 🔐 SSL/TLS support with automatic certificate renewal
-- 🚀 Scalable architecture with Nginx reverse proxy
+- Scrapes comprehensive business information from Google Maps
+- Production-ready with Docker containerization
+- Configurable rate limiting and timeouts
+- SSL/TLS support with automatic certificate renewal
+- Proper error handling and logging
+- Anti-detection measures
 
-## Quick Start
-
-### Local Development
-
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Run the Flask application:
-```bash
-python maps_scraper.py
-```
-
-### Docker Deployment
-
-1. Update your domain in `nginx.conf`:
-```bash
-sed -i "s/YOUR_DOMAIN_NAME/yourdomain.com/g" nginx.conf
-```
-
-2. Run the deployment script:
-```bash
-chmod +x deploy.sh
-./deploy.sh yourdomain.com
-```
-
-## API Endpoints
-
-### Search Businesses
-```http
-POST /search
-Content-Type: application/json
-
-{
-    "query": "restaurants",
-    "location": "New York"
-}
-```
-
-Response:
-```json
-{
-    "results": [
-        {
-            "name": "Business Name",
-            "address": "Business Address",
-            "phone": "Phone Number",
-            "website": "Website URL",
-            "rating": "4.5",
-            "reviews": "100",
-            "hours": {...}
-        }
-    ]
-}
-```
-
-## Deployment
-
-This project includes a complete Docker setup for production deployment:
-
-- Nginx reverse proxy with SSL/TLS
-- Automatic SSL certificate renewal with Certbot
-- Docker Compose for easy orchestration
-- Secure configuration with non-root users
-- Rotating log files
-
-### Requirements
+## Prerequisites
 
 - Docker and Docker Compose
 - Domain name pointed to your server
-- Server with at least 2GB RAM
+- (Optional) Caddy server for reverse proxy
 
-### Production Setup
+## Deployment
 
-1. Point your domain's A record to your server's IP
-2. Clone this repository
-3. Run the deployment script:
+### Standard Deployment
+
+1. Clone the repository:
 ```bash
-./deploy.sh yourdomain.com
+git clone <your-repo-url>
+cd <repo-directory>
 ```
 
-## Logging
+2. Deploy with SSL:
+```bash
+chmod +x deploy.sh
+./deploy.sh your-domain.com
+```
 
-The scraper includes comprehensive logging:
-- Real-time progress updates
-- Rotating file handler to manage log sizes
-- Detailed extraction information
-- Error tracking and debugging info
+### Deployment with Existing Caddy Server
 
-Logs are stored in the `logs` directory with automatic rotation.
+1. Add the Caddy configuration snippet to your Caddyfile:
+```bash
+cat Caddyfile.snippet >> /etc/caddy/Caddyfile
+systemctl reload caddy
+```
+
+2. Deploy the application:
+```bash
+chmod +x deploy.sh
+./deploy.sh your-domain.com
+```
+
+## API Usage
+
+### Scrape Google Maps Results
+
+```bash
+curl -X POST https://your-domain.com/scrape \
+  -H "Content-Type: application/json" \
+  -d '{
+    "search_query": "restaurants in new york",
+    "limit": 30
+  }'
+```
+
+Response format:
+```json
+{
+  "status": "success",
+  "search_query": "restaurants in new york",
+  "results_count": 30,
+  "results": [
+    {
+      "name": "Restaurant Name",
+      "rating": "4.5",
+      "reviews": "1,234 reviews",
+      "address": "123 Main St, New York, NY",
+      "phone": "+1 234-567-8900",
+      "website": "https://example.com",
+      "category": "Restaurant"
+    }
+  ],
+  "message": "Scraping completed successfully"
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file with the following variables:
+```env
+FLASK_ENV=production
+FLASK_APP=maps_scraper.py
+```
+
+### Timeouts
+
+- API timeout: 180 seconds
+- Scraping timeout: 180 seconds
+- Individual request timeout: 30 seconds
+
+## Maintenance
+
+### Viewing Logs
+
+```bash
+# View all logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f web
+docker-compose logs -f nginx
+```
+
+### Updating the Application
+
+```bash
+# Pull latest changes
+git pull
+
+# Rebuild and restart containers
+docker-compose down
+docker-compose up -d --build
+```
 
 ## Security
 
+- Runs as non-root user
 - SSL/TLS encryption
-- Non-root Docker containers
-- Regular security updates
-- Protected API endpoints
-- Secure configuration defaults
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Rate limiting
+- Input validation
+- Anti-bot detection measures
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[Your License]

@@ -1,0 +1,16 @@
+gmb-scraper.funautomations.io {
+    reverse_proxy localhost:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Increased timeouts for scraping operations
+    timeouts {
+        read_header 30s
+        read_body 180s
+        write 180s
+        idle 180s
+    }
+}

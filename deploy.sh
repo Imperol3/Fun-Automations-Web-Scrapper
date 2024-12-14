@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Replace YOUR_DOMAIN_NAME with actual domain
+# Exit on error
+set -e
+
+# Check if domain argument is provided
 if [ -z "$1" ]; then
     echo "Please provide your domain name as an argument"
     echo "Usage: ./deploy.sh yourdomain.com"
@@ -10,17 +13,26 @@ fi
 DOMAIN=$1
 
 # Create required directories
-mkdir -p certbot/conf certbot/www
+mkdir -p certbot/conf
+mkdir -p certbot/www
 
-# Update nginx.conf with domain name
-sed -i "s/YOUR_DOMAIN_NAME/$DOMAIN/g" nginx.conf
+# Stop any running containers
+docker-compose down
 
-# Start containers
-docker-compose up -d nginx
-docker-compose up certbot
+# Start nginx container
+docker-compose up --force-recreate -d nginx
+
+# Wait for nginx to start
+sleep 5
 
 # Get SSL certificate
-docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ --email your-email@example.com --agree-tos --no-eff-email -d $DOMAIN
+docker-compose run --rm certbot certonly --webroot --webroot-path=/var/www/certbot \
+    --email admin@${DOMAIN} --agree-tos --no-eff-email \
+    -d ${DOMAIN}
 
-# Restart nginx to load SSL certificate
-docker-compose restart nginx
+# Restart containers
+docker-compose down
+docker-compose up -d
+
+echo "Deployment completed! Your application should be running at https://${DOMAIN}"
+echo "Check the logs with: docker-compose logs -f"
